@@ -279,8 +279,14 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * {@link #createEnvironment()}.
 	 */
 	@Override
+	// 如果没有初始环境变量，则创建环境变量，如果环境变量存在，则返回
 	public ConfigurableEnvironment getEnvironment() {
 		if (this.environment == null) {
+			// 初始化环境变量是org.springframework.web.context.ContextLoader.initWebApplicationContext调用
+			// org.springframework.web.context.ContextLoader.configureAndRefreshWebApplicationContext方法的
+			// 时候进行环境变量的初始化，configureAndRefreshWebApplicationContext主要是加载xml配置文件，
+			// 在解析配置文件的时候，resolvePath 方法中会调用 getEnvironment 这个时候环境变量没有初始化
+			// 会初始化一个StandardEnvironment对象
 			this.environment = createEnvironment();
 		}
 		return this.environment;
@@ -291,6 +297,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * <p>Subclasses may override this method in order to supply
 	 * a custom {@link ConfigurableEnvironment} implementation.
 	 */
+	// new 一个默认的标准的环境变量
+	// ConfigurableEnvironment接口只有一个StandardEnvironment实现，
+	// StandardServletEnvironment继承自StandardEnvironment
 	protected ConfigurableEnvironment createEnvironment() {
 		return new StandardEnvironment();
 	}
@@ -483,7 +492,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
-			// 准备刷新上下文环境
+			// 准备上下文环境
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
@@ -491,7 +500,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
-			// 对BeanFactory进行填充
+			// 对BeanFactory进行填充，设置BeanFactory的一些属性
 			prepareBeanFactory(beanFactory);
 
 			try {
@@ -578,10 +587,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize any placeholder property sources in the context environment
+		// 读取环境变量，主要是配置，初始换环境变量的工作是在加载配置文件的时候
 		initPropertySources();
 
 		// Validate that all properties marked as required are resolvable
 		// see ConfigurablePropertyResolver#setRequiredProperties
+		// 验证所有的配置是否能够被解析，即是否满足k->v的数据结构
 		getEnvironment().validateRequiredProperties();
 
 		// Allow for the collection of early ApplicationEvents,
@@ -616,11 +627,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 		// Tell the internal bean factory to use the context's class loader etc.
+		// 设置bean的类加载器，bean表达式解析器，可编辑属性的注册器
 		beanFactory.setBeanClassLoader(getClassLoader());
 		beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));
 		beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
 
 		// Configure the bean factory with context callbacks.
+		// 配置一些回调接口，设置后置处理器，忽略一些接口的依赖，添加注解处理器
 		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
 		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
 		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
@@ -637,9 +650,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.registerResolvableDependency(ApplicationContext.class, this);
 
 		// Register early post-processor for detecting inner beans as ApplicationListeners.
+		// 添加监听器
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found.
+		// 添加切面处理器，大概
 		if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
 			beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
 			// Set a temporary ClassLoader for type matching.
@@ -647,6 +662,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Register default environment beans.
+		// 注册默认的bean对象
 		if (!beanFactory.containsLocalBean(ENVIRONMENT_BEAN_NAME)) {
 			beanFactory.registerSingleton(ENVIRONMENT_BEAN_NAME, getEnvironment());
 		}

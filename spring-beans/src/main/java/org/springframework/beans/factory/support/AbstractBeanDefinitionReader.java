@@ -210,7 +210,9 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 	 * @see #loadBeanDefinitions(org.springframework.core.io.Resource)
 	 * @see #loadBeanDefinitions(org.springframework.core.io.Resource[])
 	 */
+	// 返回资源文件中的bean对象的数量
 	public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) throws BeanDefinitionStoreException {
+		// 获取资源加载器
 		ResourceLoader resourceLoader = getResourceLoader();
 		if (resourceLoader == null) {
 			throw new BeanDefinitionStoreException(
@@ -220,8 +222,11 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		if (resourceLoader instanceof ResourcePatternResolver) {
 			// Resource pattern matching available.
 			try {
+				// 加载器加载资源
 				Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location);
+				// 获取配置资源配置文件中的bean对象的数量
 				int count = loadBeanDefinitions(resources);
+				// 如果有额外的资源文件即加载
 				if (actualResources != null) {
 					Collections.addAll(actualResources, resources);
 				}
